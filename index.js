@@ -1,8 +1,8 @@
 const express = require('express');
-const config = require('./config');
-const authMiddleware = require('./middleware/auth');
-const errorHandler = require('./middleware/error');
-const routes = require('./routes');
+const config = require('./src/config');
+const authMiddleware = require('./src/middleware/auth');
+const errorHandler = require('./src/middleware/error');
+const routes = require('./src/routes');
 const pkg = require('./package.json');
 
 const { port, dbUrl, secret } = config;
