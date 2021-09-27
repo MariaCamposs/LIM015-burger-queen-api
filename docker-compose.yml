@@ -7,9 +7,11 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: bq
       MONGO_INITDB_ROOT_PASSWORD: secret
-    ports:
-    - 28017:27017
     restart: always
+    expose:
+      - 27017
+    ports:
+      - 27017:27017
     networks:
       - public
       - private
@@ -29,11 +31,11 @@ services:
     expose:
       - 8080 # nuestra app corre en el puerto 8080
     ports:
-      # mapeamos el puerto 8080 de nuestro contenedor al puerto 80 de nuestra
+      # mapeamos el puerto 8080 de nuestro contenedor al puerto 81 de nuestra
       # máquina
-      - 80:8080
+      - 81:8080
     # reinstalamos las dependencias y levantamos el servidor
-    command: bash -c 'rm -rf node_modules && npm install && npm start'
+    command: bash -c 'rm -rf node_modules && npm install && npm run dev'
     depends_on:
       - db
     networks:
