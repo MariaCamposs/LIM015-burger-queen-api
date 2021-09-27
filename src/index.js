@@ -1,14 +1,25 @@
+/* eslint-disable no-console */
 const express = require('express');
-const config = require('./src/config');
-const authMiddleware = require('./src/middleware/auth');
-const errorHandler = require('./src/middleware/error');
-const routes = require('./src/routes');
-const pkg = require('./package.json');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const config = require('./config');
+const authMiddleware = require('./middleware/auth');
+const errorHandler = require('./middleware/error');
+const routes = require('./routes');
+const pkg = require('../package.json');
 
 const { port, dbUrl, secret } = config;
 const app = express();
 
 // TODO: Conexión a la Base de Datos (MongoDB o MySQL)
+
+mongoose.connect(dbUrl, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  // eslint-disable-next-line no-console
+  .then((db) => console.info(db.connections))
+  .catch((error) => console.info(error));
 
 app.set('config', config);
 app.set('pkg', pkg);
@@ -16,6 +27,7 @@ app.set('pkg', pkg);
 // parse application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.use(cors());
 app.use(authMiddleware(secret));
 
 // Registrar rutas

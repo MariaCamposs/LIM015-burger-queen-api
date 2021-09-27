@@ -1,6 +1,4 @@
-const mongoose = require('mongoose');
-
-const { Schema } = mongoose;
+const { Schema, model } = require('mongoose');
 
 const ProductSchema = new Schema({
   name: { type: String, required: true },
@@ -10,4 +8,4 @@ const ProductSchema = new Schema({
   dateEntry: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('Product', ProductSchema);
+module.exports = model('Product', ProductSchema);
