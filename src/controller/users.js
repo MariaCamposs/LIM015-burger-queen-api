@@ -1,6 +1,6 @@
 const User = require('../models/user');
 const {
-  pagination, validateUser, isAValidEmail, isAWeakPassword,
+  pagination, validateUser, isValidEmail, isWeakPassword,
 } = require('../services/services');
 const { isAdmin } = require('../middleware/auth');
 
@@ -51,7 +51,7 @@ const newUser = async (req, resp, next) => {
     if (!email || !password) {
       return next(400);
     }
-    if (isAWeakPassword(password) || !isAValidEmail(email)) return next(400);
+    if (isWeakPassword(password) || !isValidEmail(email)) return next(400);
     const findUser = await User.findOne({ email: req.body.email });
 
     if (findUser) {
@@ -86,8 +86,8 @@ const updateUser = async (req, resp, next) => {
     if (!checkIsAdmin && body.roles) return resp.json({ message: 'Requiere rol de administrador' });
     if (Object.entries(body).length === 0) return next(400);
 
-    if (body.email && !isAValidEmail(body.email)) return next(400);
-    if (body.password && isAWeakPassword(body.password)) return next(400);
+    if (body.email && !isValidEmail(body.email)) return next(400);
+    if (body.password && isWeakPassword(body.password)) return next(400);
 
     const updateUser = await User.findOneAndUpdate(
       value,
