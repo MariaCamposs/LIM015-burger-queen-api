@@ -39,28 +39,22 @@ userSchema.pre('save', function (next) {
   console.log('exito');
 });
 
-userSchema.pre('findOneAndUpdate', (next) => {
-  const user = this;
-  if (!user._update.$set.password) return next();
-  bcrypt.hash(user._update.$set.password, 10, (err, hash) => {
-    if (err) return next(err);
-    user._update.$set.password = hash;
-    next();
-  });
+userSchema.pre('findOneAndUpdate', async function () {
+  this._update.password = await bcrypt.hash(this._update.password, 10)
 });
 
 // comparando la version texto de la contraseña
 // con la version encriptada en la base de datos
-userSchema.methods.comparePassword = (password, cb) => {
-  bcrypt.compare(password, this.password, (err, isMatch) => {
-    // si ocurre un error retorna un cb
-    if (err) return cb(err, false);
-    // si no coinciden
-    if (!isMatch) return cb(null, isMatch);
-    // si coiciden retornará un callback
-    // con null en el apartado del error y this (el modelo user) como argumentos.
-    return cb(null, this);
-  });
+userSchema.methods.comparePassword = async (password, cb) => {
+  try {
+    const match = await bcrypt.compare(password, cb);
+    if (!match) {
+      throw new Error('Authentication error');
+    }
+    return match;
+  } catch (error) {
+    throw new Error('Wrong password.');
+  }
 };
 
 userSchema.plugin(mongoosePaginate);
