@@ -48,10 +48,12 @@ const getOneUser = async (req, resp, next) => {
 const newUser = async (req, resp, next) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return next(400);
     }
     if (isWeakPassword(password) || !isValidEmail(email)) return next(400);
+
     const findUser = await User.findOne({ email: req.body.email });
 
     if (findUser) {
@@ -70,34 +72,39 @@ const newUser = async (req, resp, next) => {
   }
 };
 
-// PUT /users
+// PUT /users/:uid
 const updateUser = async (req, resp, next) => {
   try {
     const { uid } = req.params;
-    const { body } = req;
+    let { body } = req;
 
-    const value = validateUser(uid);
-    const user = await User.findOne(value);
+    const validate = validateUser(uid);
+    const userFind = await User.findOne(validate);
+    console.log('obteniendo user' ,userFind)
 
-    if (!user) return next(404);
+    if (!userFind) {
+      console.log('Usuario no encontrado')
+      return resp.status(404).json('El usuario no existe');
+    }
 
-    const checkIsAdmin = isAdmin(req);
-    if (!checkIsAdmin && req.authToken.uid !== user._id.toString()) return resp.json({ message: 'No tiene autorizacion' });
-    if (!checkIsAdmin && body.roles) return resp.json({ message: 'Requiere rol de administrador' });
-    if (Object.entries(body).length === 0) return next(400);
+    if ((Object.keys(body).length === 0) || body.email === '' || body.password === '') {
+      return resp.status(400).json('Ingrese email y/o password');
+    }
 
-    if (body.email && !isValidEmail(body.email)) return next(400);
-    if (body.password && isWeakPassword(body.password)) return next(400);
+    if ((req.authToken.id === userFind._id.toString()) || (await isAdmin(req))) {
+      console.log('findByIdAndUpdate', userFind._id, body)
+      const updateUser = await User.findByIdAndUpdate(
+        { _id: userFind._id },
+        body,
+        { new: true});
+        console.log('exito', updateUser)
+      return resp.status(200).json(updateUser);
+    }
 
-    const updateUser = await User.findOneAndUpdate(
-      value,
-      { $set: body },
-      { new: true, useFindAndModify: false },
-    );
-
-    return resp.status(200).json(updateUser);
-  } catch (error) {
-    next(404);
+    return next(403);
+  } catch (err) {
+    console.log(err, 'error')
+    return next(404);
   }
 };
 
