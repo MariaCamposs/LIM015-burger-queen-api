@@ -13,5 +13,5 @@ const orderSchema = new Schema({
   dateProcessed: { type: Date, required: true },
 });
 
-productSchema.plugin(mongoosePaginate);
+orderSchema.plugin(mongoosePaginate);
 module.exports = model('Order', orderSchema);
