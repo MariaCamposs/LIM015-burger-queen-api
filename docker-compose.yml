@@ -16,7 +16,7 @@ services:
       - public
       - private
   node:
-    image: node:12 # https://hub.docker.com/_/node/
+    image: node:14 # https://hub.docker.com/_/node/
     user: node
     working_dir: /home/node/app
     environment:
@@ -35,7 +35,7 @@ services:
       # máquina
       - 81:8080
     # reinstalamos las dependencias y levantamos el servidor
-    command: bash -c 'rm -rf node_modules && npm install && npm run dev'
+    command: bash -c 'rm -rf node_modules package-lock.json && npm install && npm run dev'
     depends_on:
       - db
     networks:
