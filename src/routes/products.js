@@ -2,9 +2,10 @@ const {
   requireAuth,
   requireAdmin,
 } = require('../middleware/auth');
-const Product = require('../models/product')
 
-const { getProducts, getOneProduct, newProduct, updateProduct, deleteProduct } = require('../controller/products');
+const {
+  getProducts, getOneProduct, newProduct, updateProduct, deleteProduct,
+} = require('../controller/products');
 
 /** @module products */
 module.exports = (app, nextMain) => {
@@ -74,7 +75,6 @@ module.exports = (app, nextMain) => {
    * @code {404} si el producto con `productId` indicado no existe
    */
   app.post('/products', requireAdmin, newProduct);
-
 
   /**
    * @name PUT /products

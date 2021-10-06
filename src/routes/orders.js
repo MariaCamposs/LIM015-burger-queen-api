@@ -1,7 +1,9 @@
 const {
   requireAuth,
 } = require('../middleware/auth');
-const { getOrders, getOneOrder, newOrder, updateOrder, deleteOrder } = require('../controller/orders')
+const {
+  getOrders, getOneOrder, newOrder, updateOrder, deleteOrder,
+} = require('../controller/orders');
 
 /** @module orders */
 module.exports = (app, nextMain) => {
