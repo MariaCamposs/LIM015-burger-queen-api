@@ -48,10 +48,12 @@ const getOneUser = async (req, resp, next) => {
 const newUser = async (req, resp, next) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return next(400);
     }
     if (isWeakPassword(password) || !isValidEmail(email)) return next(400);
+
     const findUser = await User.findOne({ email: req.body.email });
 
     if (findUser) {
@@ -70,34 +72,40 @@ const newUser = async (req, resp, next) => {
   }
 };
 
-// PUT /users
+// PUT /users/:uid
 const updateUser = async (req, resp, next) => {
   try {
     const { uid } = req.params;
     const { body } = req;
 
-    const value = validateUser(uid);
-    const user = await User.findOne(value);
+    const validate = validateUser(uid);
+    const userFind = await User.findOne(validate);
 
-    if (!user) return next(404);
+    const checkIsAdmin = await isAdmin(req);
+    if (req.authToken.uid !== userFind._id.toString() && !checkIsAdmin) {
+      return resp.status(403).json(' admin');
+    }
 
-    const checkIsAdmin = isAdmin(req);
-    if (!checkIsAdmin && req.authToken.uid !== user._id.toString()) return resp.json({ message: 'No tiene autorizacion' });
-    if (!checkIsAdmin && body.roles) return resp.json({ message: 'Requiere rol de administrador' });
-    if (Object.entries(body).length === 0) return next(400);
+    if (!userFind) {
+      return resp.status(404).json('El usuario no existe');
+    }
 
-    if (body.email && !isValidEmail(body.email)) return next(400);
-    if (body.password && isWeakPassword(body.password)) return next(400);
+    if (!checkIsAdmin && body.roles) {
+      return resp.status(403).json('Debe tener rol de admin');
+    }
 
-    const updateUser = await User.findOneAndUpdate(
-      value,
-      { $set: body },
-      { new: true, useFindAndModify: false },
+    if ((Object.keys(body).length === 0) || body.email === '' || body.password === '') {
+      return resp.status(400).json('Ingrese email y/o password');
+    }
+
+    const updateUser = await User.findByIdAndUpdate(
+      { _id: userFind._id },
+      body,
+      { new: true },
     );
-
     return resp.status(200).json(updateUser);
-  } catch (error) {
-    next(404);
+  } catch (err) {
+    return next(404);
   }
 };
 
@@ -107,15 +115,16 @@ const deleteOneUser = async (req, resp, next) => {
     const { uid } = req.params;
 
     const value = validateUser(uid);
-    const deletedUser = await User.findOne(value);
+    const user = await User.findOne(value);
 
-    if (!deletedUser) return next(404);
+    if (!user) return next(404);
 
-    const checkIsAdmin = isAdmin(req);
-    if (req.authToken.uid !== deletedUser._id.toString() || checkIsAdmin) {
-      await User.findByIdAndDelete(value);
-      return resp.status(200).send(deletedUser);
+    const checkIsAdmin = await isAdmin(req);
+    if (req.authToken.uid === user._id.toString() || checkIsAdmin) {
+      await User.findByIdAndDelete({ _id: user._id });
+      return resp.status(200).send(user);
     }
+
     return next(403);
   } catch (error) {
     return next(404);

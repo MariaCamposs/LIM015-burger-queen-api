@@ -7,11 +7,7 @@ const {
 const User = require('../models/user');
 
 const {
-  getUsers,
-  getOneUser,
-  newUser,
-  updateUser,
-  deleteOneUser,
+  getUsers, getOneUser, newUser, updateUser, deleteOneUser,
 } = require('../controller/users');
 
 const initAdminUser = (app, next) => {
