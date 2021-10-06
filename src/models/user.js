@@ -9,8 +9,12 @@ const userSchema = new Schema({
   email: {
     type: String, unique: true, lowercase: true, required: true,
   },
-  password: { type: String, required: true, select: false },
-  roles: { admin: { type: Boolean, required: true } },
+  password: { type: String, required: true },
+  roles: { admin: { type: Boolean, default: false } },
+},
+{
+  timestamps: true,
+  versionKey: false,
 });
 
 // Antes de guardar se ejecuta la siguiente funcion
@@ -40,12 +44,12 @@ userSchema.pre('save', function (next) {
 });
 
 userSchema.pre('findOneAndUpdate', async function () {
-  this._update.password = await bcrypt.hash(this._update.password, 10)
+  this._update.password = await bcrypt.hash(this._update.password, 10);
 });
 
 // comparando la version texto de la contraseña
 // con la version encriptada en la base de datos
-userSchema.methods.comparePassword = async (password, cb) => {
+userSchema.statics.comparePassword = async (password, cb) => {
   try {
     const match = await bcrypt.compare(password, cb);
     if (!match) {
