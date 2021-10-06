@@ -76,34 +76,35 @@ const newUser = async (req, resp, next) => {
 const updateUser = async (req, resp, next) => {
   try {
     const { uid } = req.params;
-    let { body } = req;
+    const { body } = req;
 
     const validate = validateUser(uid);
     const userFind = await User.findOne(validate);
-    console.log('obteniendo user' ,userFind)
+
+    const checkIsAdmin = await isAdmin(req);
+    if (req.authToken.uid !== userFind._id.toString() && !checkIsAdmin) {
+      return resp.status(403).json(' admin');
+    }
 
     if (!userFind) {
-      console.log('Usuario no encontrado')
       return resp.status(404).json('El usuario no existe');
+    }
+
+    if (!checkIsAdmin && body.roles) {
+      return resp.status(403).json('Debe tener rol de admin');
     }
 
     if ((Object.keys(body).length === 0) || body.email === '' || body.password === '') {
       return resp.status(400).json('Ingrese email y/o password');
     }
 
-    if ((req.authToken.id === userFind._id.toString()) || (await isAdmin(req))) {
-      console.log('findByIdAndUpdate', userFind._id, body)
-      const updateUser = await User.findByIdAndUpdate(
-        { _id: userFind._id },
-        body,
-        { new: true});
-        console.log('exito', updateUser)
-      return resp.status(200).json(updateUser);
-    }
-
-    return next(403);
+    const updateUser = await User.findByIdAndUpdate(
+      { _id: userFind._id },
+      body,
+      { new: true },
+    );
+    return resp.status(200).json(updateUser);
   } catch (err) {
-    console.log(err, 'error')
     return next(404);
   }
 };
@@ -114,15 +115,16 @@ const deleteOneUser = async (req, resp, next) => {
     const { uid } = req.params;
 
     const value = validateUser(uid);
-    const deletedUser = await User.findOne(value);
+    const user = await User.findOne(value);
 
-    if (!deletedUser) return next(404);
+    if (!user) return next(404);
 
-    const checkIsAdmin = isAdmin(req);
-    if (req.authToken.uid !== deletedUser._id.toString() || checkIsAdmin) {
-      await User.findByIdAndDelete(value);
-      return resp.status(200).send(deletedUser);
+    const checkIsAdmin = await isAdmin(req);
+    if (req.authToken.uid === user._id.toString() || checkIsAdmin) {
+      await User.findByIdAndDelete({ _id: user._id });
+      return resp.status(200).send(user);
     }
+
     return next(403);
   } catch (error) {
     return next(404);
