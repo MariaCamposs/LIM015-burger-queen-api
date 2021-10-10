@@ -28,7 +28,6 @@ const newOrder = async (req, resp, next) => {
     const currentOrder = await Order.findOne({ _id: orderSave._id }).populate('products.product');
     return resp.status(200).json(currentOrder);
   } catch (err) {
-    console.info(err, 'error final');
     next(404);
   }
 };

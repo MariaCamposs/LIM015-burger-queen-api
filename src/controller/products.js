@@ -54,7 +54,7 @@ const newProduct = async (req, resp, next) => {
     }
 
     const createProduct = new Product(req.body);
-    const savedProduct = await createProduct.save(createProduct);
+    const savedProduct = await createProduct.save();
     const product = await Product.findOne({ _id: savedProduct._id });
     resp.status(200).json(product);
   } catch (error) {
@@ -71,7 +71,7 @@ const updateProduct = async (req, resp, next) => {
     if (!isAdmin(req)) return next(403);
 
     const productFound = await Product.findById(productId);
-    if (body.price && typeof body.price !== 'number') return resp.status(400).json({ message: 'the price must be a number' });
+    if (body.price && typeof body.price !== 'number') return resp.status(400).json({ message: 'El precio debe ser un numero' });
     if (!productFound) return resp.status(404).json({ message: 'El producto no existe' });
     const productUpdate = await Product.findOneAndUpdate(
       { _id: req.params.productId },

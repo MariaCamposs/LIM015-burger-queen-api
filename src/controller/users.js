@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 const User = require('../models/user');
 const {
   pagination, validateUser, isValidEmail, isWeakPassword,
@@ -32,7 +33,7 @@ const getOneUser = async (req, resp, next) => {
     const value = validateUser(uid);
     const findUser = await User.findOne(value);
     if (!findUser) {
-      return next(404);
+      return resp.status(404).json({ message: 'id o email invalido' });
     }
     const checkIsAdmin = await isAdmin(req);
     if (req.authToken.uid === findUser._id.toString() || checkIsAdmin) {
@@ -47,12 +48,14 @@ const getOneUser = async (req, resp, next) => {
 // POST /users
 const newUser = async (req, resp, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, roles } = req.body;
 
     if (!email || !password) {
-      return next(400);
+      return resp.status(400).json({ message: 'Debe ingresar email o contraseña' });
     }
-    if (isWeakPassword(password) || !isValidEmail(email)) return next(400);
+    if (isWeakPassword(password) || !isValidEmail(email)) {
+      return resp.status(400).json({ message: 'Email o contraseña invalida' });
+    }
 
     const findUser = await User.findOne({ email: req.body.email });
 
@@ -62,11 +65,14 @@ const newUser = async (req, resp, next) => {
       });
     }
 
-    const newUser = new User(req.body);
+    const newUser = new User({
+      email,
+      password: await User.encryptPassword(password),
+      roles,
+    });
 
     const savedUser = await newUser.save(newUser);
-    const user = await User.findOne({ _id: savedUser._id }).select('-password');
-    return resp.status(200).json(user);
+    return resp.status(200).json(savedUser);
   } catch (error) {
     next(error);
   }
@@ -78,33 +84,30 @@ const updateUser = async (req, resp, next) => {
     const { uid } = req.params;
     const { body } = req;
 
-    const validate = validateUser(uid);
-    const userFind = await User.findOne(validate);
+    const value = validateUser(uid);
 
-    const checkIsAdmin = await isAdmin(req);
-    if (req.authToken.uid !== userFind._id.toString() && !checkIsAdmin) {
-      return resp.status(403).json(' admin');
+    const userFind = await User.findOne(value);
+
+    if (!userFind) return next(404);
+
+    if (req.authToken.uid !== userFind._id.toString() && !isAdmin(req)) return next(403);
+    if (!isAdmin(req) && body.roles) return next(403);
+    if (Object.entries(body).length === 0) {
+      return resp.status(400).json('Ingrese email y/o password para actualizar');
     }
 
-    if (!userFind) {
-      return resp.status(404).json('El usuario no existe');
-    }
+    if (body.password && isWeakPassword(body.password)) return next(400);
 
-    if (!checkIsAdmin && body.roles) {
-      return resp.status(403).json('Debe tener rol de admin');
-    }
-
-    if ((Object.keys(body).length === 0) || body.email === '' || body.password === '') {
-      return resp.status(400).json('Ingrese email y/o password');
-    }
+    if (body.email && !isValidEmail(body.email)) return next(400);
 
     const updateUser = await User.findByIdAndUpdate(
       { _id: userFind._id },
-      body,
+      req.body,
       { new: true },
     );
     return resp.status(200).json(updateUser);
   } catch (err) {
+    console.info('error users', err);
     return next(404);
   }
 };
@@ -117,15 +120,20 @@ const deleteOneUser = async (req, resp, next) => {
     const value = validateUser(uid);
     const user = await User.findOne(value);
 
-    if (!user) return next(404);
-
     const checkIsAdmin = await isAdmin(req);
+    if (req.authToken.uid !== user._id.toString() && !checkIsAdmin) {
+      return resp.status(403).json('Debe tener rol de administrador');
+    }
+
+    if (!user) {
+      console.info('usuario delele no existe');
+      return resp.status(404).json({ message: `El usuario ${uid} no existe` });
+    }
+
     if (req.authToken.uid === user._id.toString() || checkIsAdmin) {
       await User.findByIdAndDelete({ _id: user._id });
       return resp.status(200).send(user);
     }
-
-    return next(403);
   } catch (error) {
     return next(404);
   }
