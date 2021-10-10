@@ -1,11 +1,8 @@
-/* eslint-disable import/no-unresolved */
 const path = require('path');
 const { spawn } = require('child_process');
 const nodeFetch = require('node-fetch');
 const kill = require('tree-kill');
-
 const mongoSetup = require('@shelf/jest-mongodb/setup');
-
 const config = require('../src/config');
 
 const port = process.env.PORT || 8888;
@@ -21,17 +18,20 @@ const __e2e = {
   adminToken: null,
   testUserCredentials: {
     email: 'test@test.test',
-    password: '12345@Ab',
+    password: 'As.123456',
   },
   testUserToken: null,
   childProcessPid: null,
-  testObjects: ['test@test.test', 'test1@test.test', 'admin1@test.test'],
+  // in `testObjects` we keep track of objects created during the test run so
+  // that we can clean up before exiting.
+  // For example: ['users/foo@bar.baz', 'products/xxx', 'orders/yyy']
+  // testObjects: [],
 };
 
 const fetch = (url, opts = {}) => nodeFetch(`${baseUrl}${url}`, {
   ...opts,
   headers: {
-    'Content-Type': 'application/json',
+    'content-type': 'application/json',
     ...opts.headers,
   },
   ...(
@@ -58,7 +58,7 @@ const createTestUser = () => fetchAsAdmin('/users', {
 })
   .then((resp) => {
     if (resp.status !== 200) {
-      throw new Error('Could not create test user');
+      throw new Error(`Could not create test user ${resp.status}`);
     }
     return fetch('/auth', { method: 'POST', body: __e2e.testUserCredentials });
   })
@@ -76,6 +76,7 @@ const checkAdminCredentials = () => fetch('/auth', {
 })
   .then((resp) => {
     if (resp.status !== 200) {
+      console.info(Error);
       throw new Error('Could not authenticate as admin user');
     }
 
@@ -96,7 +97,7 @@ const waitForServerToBeReady = (retries = 10) => new Promise((resolve, reject) =
           : resolve()
       ))
       .catch(() => waitForServerToBeReady(retries - 1).then(resolve, reject));
-  }, 2000);
+  }, 1000);
 });
 
 module.exports = () => new Promise((resolve, reject) => {
@@ -132,6 +133,7 @@ module.exports = () => new Promise((resolve, reject) => {
       console.error(err);
       kill(child.pid, 'SIGKILL', () => process.exit(1));
     });
+
     waitForServerToBeReady()
       .then(checkAdminCredentials)
       .then(createTestUser)
@@ -141,6 +143,7 @@ module.exports = () => new Promise((resolve, reject) => {
       });
   });
 });
+
 // Export globals - ugly... :-(
 global.__e2e = __e2e;
 

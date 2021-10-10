@@ -17,49 +17,22 @@ const userSchema = new Schema({
   versionKey: false,
 });
 
-// Antes de guardar se ejecuta la siguiente funcion
-userSchema.pre('save', function (next) {
-  // si el usuario no ha modificado su contraseña
-  // se termina la funcion
-  const user = this;
-  if (!user.isModified('password')) return next();
+userSchema.statics.encryptPassword = async (password) => {
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash(password, salt);
+  return hash;
+};
 
-  // si no, con bcrypt se genera salto de 10
-  bcrypt.genSalt(10, (err, salt) => {
-    // si hay error pasa al siguiente
-    if (err) return next(err);
-
-    // si no, hashea la contraseña con el salt que se generó
-    bcrypt.hash(user.password, salt, (err, hash) => {
-      // si hay error devuelve el error
-      if (err) return next(err);
-
-      // si no hay error el password sera el hash
-      user.password = hash;
-      console.log('hash exito');
-      next();
-    });
-  });
-  console.log('exito');
-});
+// comparando la version texto de la contraseña
+// con la version encriptada en la base de datos
+userSchema.statics.comparePassword = async (password, receivedPassword) => {
+  const result = await bcrypt.compare(password, receivedPassword);
+  return result;
+};
 
 userSchema.pre('findOneAndUpdate', async function () {
   this._update.password = await bcrypt.hash(this._update.password, 10);
 });
-
-// comparando la version texto de la contraseña
-// con la version encriptada en la base de datos
-userSchema.statics.comparePassword = async (password, cb) => {
-  try {
-    const match = await bcrypt.compare(password, cb);
-    if (!match) {
-      throw new Error('Authentication error');
-    }
-    return match;
-  } catch (error) {
-    throw new Error('Wrong password.');
-  }
-};
 
 userSchema.plugin(mongoosePaginate);
 

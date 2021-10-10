@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+const bcrypt = require('bcrypt');
 const {
   requireAuth,
   requireAdmin,
@@ -16,36 +17,24 @@ const initAdminUser = (app, next) => {
     return next();
   }
 
-  const adminUser = {
+  const adminUser = new User({
     email: adminEmail,
-    password: adminPassword,
+    password: bcrypt.hashSync(adminPassword, 10),
     roles: { admin: true },
-  };
+  });
 
   // TODO: crear usuaria admin
   const userFind = User.findOne({ email: adminEmail });
 
-  userFind.then((doc) => {
-    if (doc) {
+  userFind.then(async (doc) => {
+    if (!doc) {
       console.info('El usuario ya existe en la base de datos');
-      return next(200);
+      await adminUser.save();
     }
-
-    const newUser = new User(adminUser);
-    console.log(newUser);
-    newUser.save().then((savedDoc) => {
-      console.info(savedDoc, 'El usuario ha sido creado');
-      console.info(newUser);
-    }).catch((err) => {
-      console.log('error al crear usuario', err);
-    });
   })
     .catch((err) => {
-      if (err !== 200) {
-        console.info('Ha ocurrido un error', err);
-      }
+      next(err);
     });
-
   next();
 };
 
