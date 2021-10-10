@@ -107,7 +107,6 @@ const updateUser = async (req, resp, next) => {
     );
     return resp.status(200).json(updateUser);
   } catch (err) {
-    console.info('error users', err);
     return next(404);
   }
 };
